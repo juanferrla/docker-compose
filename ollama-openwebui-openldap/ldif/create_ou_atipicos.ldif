@@ -1,0 +1,4 @@
+dn: ou=Atipicos,dc=cebola,dc=es
+objectClass: organizationalUnit
+ou: Atipicos
+

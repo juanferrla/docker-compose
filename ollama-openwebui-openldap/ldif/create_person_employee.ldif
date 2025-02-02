@@ -1,0 +1,9 @@
+dn: uid=juanferrla,ou=Employee,dc=cebola,dc=es
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+cn: Jan 
+sn: Fereir
+uid: juanferrla
+mail: juanferrla@cebola.es
+userPassword: {SSHA}secret

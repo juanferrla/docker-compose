@@ -1,0 +1,4 @@
+dn: cn=admins,ou=Groups,dc=cebola,dc=es
+objectClass: groupOfNames
+cn: admins
+member: uid=juanferrla,ou=Employee,dc=cebola,dc=es

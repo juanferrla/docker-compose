@@ -1,0 +1,123 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - 8000:8000
+      - 5678:5678
+    volumes:
+      - .:/code
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: always
+    depends_on:
+      - ollama
+      - ollama-webui
+    networks:
+      - ollama-docker
+
+  ollama:
+    volumes:
+      - ./ollama/ollama:/root/.ollama
+    container_name: ollama
+    pull_policy: always
+    tty: true
+    restart: unless-stopped
+    image: ollama/ollama:latest
+    ports:
+      - 7869:11434
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+    networks:
+      - ollama-docker
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  ollama-webui:
+    image: ghcr.io/open-webui/open-webui:latest
+    container_name: ollama-webui
+    volumes:
+      - ./ollama/ollama-webui:/app/backend/data
+    depends_on:
+      - ollama
+    ports:
+      - 8080:8080
+    environment: # https://docs.openwebui.com/getting-started/env-configuration#default_models
+      - OLLAMA_BASE_URLS=http://host.docker.internal:7869 #comma separated ollama hosts
+      - ENV=production
+      - WEBUI_AUTH=True
+      - WEBUI_NAME=cebola
+      - WEBUI_LDAP_ENABLED=true
+      - WEBUI_LDAP_URL="ldap://openldap:389"
+      - WEBUI_LDAP_BASE_DN="dc=cebola,dc=es"
+      - WEBUI_LDAP_ADMIN_DN="cn=admin,dc=cebola,dc=es"
+      - WEBUI_LDAP_ADMIN_PASSWORD="admin"
+      - WEBUI_LDAP_USER_DN="ou=Employee,dc=cebola,dc=es"
+      - WEBUI_LDAP_USER_ATTRIBUTE="uid"
+      - WEBUI_LDAP_USER_FILTER="(&(uid={username})(objectClass=inetOrgPerson))"
+      - WEBUI_LDAP_ADMIN_GROUP="cn=admins,ou=Groups,dc=cebola,dc=es"
+      - WEBUI_LDAP_GROUP_ATTRIBUTE="member"
+      - WEBUI_URL=http://localhost:8080
+      - WEBUI_SECRET_KEY=t0p-s3cr3t
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: unless-stopped
+    networks:
+      - ollama-docker
+  openldap:
+    image: osixia/openldap:1.5.0
+    container_name: openldap
+    environment:
+      LDAP_LOG_LEVEL: "256"
+      LDAP_ORGANISATION: "cebola"
+      LDAP_DOMAIN: "cebola.es"
+      LDAP_BASE_DN: "cn=admin,dc=cebola,dc=es"
+      LDAP_ADMIN_PASSWORD: "admin"
+      LDAP_CONFIG_PASSWORD: "admin"
+      LDAP_READONLY_USER: "false"
+      LDAP_RFC2307BIS_SCHEMA: "false"
+      LDAP_BACKEND: "mdb"
+      LDAP_TLS: "true"
+      LDAP_TLS_CRT_FILENAME: "ldap.crt"
+      LDAP_TLS_KEY_FILENAME: "ldap.key"
+      LDAP_TLS_DH_PARAM_FILENAME: "dhparam.pem"
+      LDAP_TLS_CA_CRT_FILENAME: "ca.crt"
+      LDAP_TLS_ENFORCE: "false"
+      LDAP_TLS_CIPHER_SUITE: "SECURE256:-VERS-SSL3.0"
+      LDAP_TLS_VERIFY_CLIENT: "demand"
+      LDAP_REPLICATION: "false"
+      KEEP_EXISTING_CONFIG: "false"
+      LDAP_REMOVE_CONFIG_AFTER_SETUP: "true"
+      LDAP_SSL_HELPER_PREFIX: "ldap"
+    tty: true
+    stdin_open: true
+    volumes:
+      - /var/lib/ldap
+      - /etc/ldap/slapd.d
+      - /container/service/slapd/assets/certs/
+    networks:
+      - ollama-docker
+    ports:
+      - "389:389"
+      - "636:636"
+    domainname: "cebola.es"
+    hostname: "ldap-server"
+  phpldapadmin:
+    image: osixia/phpldapadmin:latest
+    container_name: phpldapadmin
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: "openldap"
+      PHPLDAPADMIN_HTTPS: "false"
+    networks:
+      - ollama-docker
+    ports:
+      - "8081:80"
+    depends_on:
+      - openldap
+networks:
+  ollama-docker:
+    external: true

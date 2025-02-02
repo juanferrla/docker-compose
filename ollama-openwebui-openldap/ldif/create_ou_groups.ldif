@@ -1,0 +1,3 @@
+dn: ou=Groups,dc=cebola,dc=es
+objectClass: organizationalUnit
+ou: Groups
