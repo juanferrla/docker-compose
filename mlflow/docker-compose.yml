@@ -13,19 +13,17 @@ services:
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
-  mysql:
-    image: mysql:8
-    container_name: mysql
-    restart: always
+
+  postgres:
+    image: postgres:15
     environment:
-      MYSQL_ROOT_PASSWORD: rootpass
-      MYSQL_DATABASE: mlflowdb
-      MYSQL_USER: mlflow
-      MYSQL_PASSWORD: mlflowpass
-    volumes:
-      - mysql_data:/var/lib/mysql
+      POSTGRES_USER: mlflow
+      POSTGRES_PASSWORD: mlflowpass
+      POSTGRES_DB: mlflowdb
     ports:
-      - "3306:3306"
+      - "5432:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
 
   mlflow:
     build:
@@ -41,7 +39,7 @@ services:
       MLFLOW_TRACKING_URI: http://mlflow:5000
     command: >
       mlflow server
-      --backend-store-uri mysql+pymysql://mlflow:mlflowpass@mysql/mlflowdb
+      --backend-store-uri postgresql+psycopg2://mlflow:mlflowpass@postgres/mlflowdb
       --default-artifact-root s3://mlflow/
       --host 0.0.0.0
       --port 5000
@@ -50,7 +48,7 @@ services:
     volumes:
       - ./mlruns:/mlruns
     depends_on:
-      - mysql
+      - postgres
       - minio
       - minio-init
 
@@ -110,6 +108,6 @@ services:
 
 
 volumes:
-  mysql_data:
+  postgres_data:
   postgres_data:
   minio_data:

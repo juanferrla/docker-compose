@@ -3,3 +3,4 @@ FROM ghcr.io/mlflow/mlflow:latest
 
 RUN pip install pymysql
 RUN pip install pymysql cryptography
+RUN pip install psycopg2-binary
