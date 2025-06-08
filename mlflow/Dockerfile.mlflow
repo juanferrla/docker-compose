@@ -1,0 +1,5 @@
+# Dockerfile.mlflow
+FROM ghcr.io/mlflow/mlflow:latest
+
+RUN pip install pymysql
+RUN pip install pymysql cryptography
